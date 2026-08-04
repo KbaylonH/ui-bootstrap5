@@ -4974,6 +4974,21 @@ angular.module('ui.bootstrap.pagination', ['ui.bootstrap.paging', 'ui.bootstrap.
  * function, placement as a function, inside, support for more triggers than
  * just mouse enter/leave, html tooltips, and selector delegation.
  */
+
+// Bootstrap 5 renamed the left/right placement classes (bs-tooltip-left,
+// bs-popover-right, ...) to the RTL-aware bs-tooltip-start/bs-tooltip-end.
+// Internal placement keywords are still left/right, so translate just the
+// primary direction when building the CSS class name.
+function bs5PlacementClass(placement) {
+  if (placement === 'left' || placement.indexOf('left-') === 0) {
+    return placement.replace('left', 'start');
+  }
+  if (placement === 'right' || placement.indexOf('right-') === 0) {
+    return placement.replace('right', 'end');
+  }
+  return placement;
+}
+
 angular.module('ui.bootstrap.tooltip', ['ui.bootstrap.position', 'ui.bootstrap.stackedMap'])
 
 /**
@@ -5142,9 +5157,9 @@ angular.module('ui.bootstrap.tooltip', ['ui.bootstrap.position', 'ui.bootstrap.s
                     tooltip.addClass(placementClasses[0]);
                   }
 
-                  if (!tooltip.hasClass(options.placementClassPrefix + placement)) {
-                    tooltip.removeClass(options.placementClassPrefix + lastPlacement);
-                    tooltip.addClass(options.placementClassPrefix + placement);
+                  if (!tooltip.hasClass(options.placementClassPrefix + bs5PlacementClass(placement))) {
+                    tooltip.removeClass(options.placementClassPrefix + bs5PlacementClass(lastPlacement));
+                    tooltip.addClass(options.placementClassPrefix + bs5PlacementClass(placement));
                   }
                   
                   // Take into account tooltup margins, since boostrap css draws tooltip arrow inside margins

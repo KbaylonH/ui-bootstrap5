@@ -4975,6 +4975,21 @@ angular.module('ui.bootstrap.pagination', ['ui.bootstrap.paging', 'ui.bootstrap.
  * function, placement as a function, inside, support for more triggers than
  * just mouse enter/leave, html tooltips, and selector delegation.
  */
+
+// Bootstrap 5 renamed the left/right placement classes (bs-tooltip-left,
+// bs-popover-right, ...) to the RTL-aware bs-tooltip-start/bs-tooltip-end.
+// Internal placement keywords are still left/right, so translate just the
+// primary direction when building the CSS class name.
+function bs5PlacementClass(placement) {
+  if (placement === 'left' || placement.indexOf('left-') === 0) {
+    return placement.replace('left', 'start');
+  }
+  if (placement === 'right' || placement.indexOf('right-') === 0) {
+    return placement.replace('right', 'end');
+  }
+  return placement;
+}
+
 angular.module('ui.bootstrap.tooltip', ['ui.bootstrap.position', 'ui.bootstrap.stackedMap'])
 
 /**
@@ -5143,9 +5158,9 @@ angular.module('ui.bootstrap.tooltip', ['ui.bootstrap.position', 'ui.bootstrap.s
                     tooltip.addClass(placementClasses[0]);
                   }
 
-                  if (!tooltip.hasClass(options.placementClassPrefix + placement)) {
-                    tooltip.removeClass(options.placementClassPrefix + lastPlacement);
-                    tooltip.addClass(options.placementClassPrefix + placement);
+                  if (!tooltip.hasClass(options.placementClassPrefix + bs5PlacementClass(placement))) {
+                    tooltip.removeClass(options.placementClassPrefix + bs5PlacementClass(lastPlacement));
+                    tooltip.addClass(options.placementClassPrefix + bs5PlacementClass(placement));
                   }
                   
                   // Take into account tooltup margins, since boostrap css draws tooltip arrow inside margins
@@ -7741,21 +7756,21 @@ angular.module("uib/template/pagination/pagination.html", []).run(["$templateCac
 
 angular.module("uib/template/tooltip/tooltip-html-popup.html", []).run(["$templateCache", function ($templateCache) {
   $templateCache.put("uib/template/tooltip/tooltip-html-popup.html",
-    "<div class=\"arrow\"></div>\n" +
+    "<div class=\"tooltip-arrow\"></div>\n" +
     "<div class=\"tooltip-inner\" ng-bind-html=\"contentExp()\"></div>\n" +
     "");
 }]);
 
 angular.module("uib/template/tooltip/tooltip-popup.html", []).run(["$templateCache", function ($templateCache) {
   $templateCache.put("uib/template/tooltip/tooltip-popup.html",
-    "<div class=\"arrow\"></div>\n" +
+    "<div class=\"tooltip-arrow\"></div>\n" +
     "<div class=\"tooltip-inner\" ng-bind=\"content\"></div>\n" +
     "");
 }]);
 
 angular.module("uib/template/tooltip/tooltip-template-popup.html", []).run(["$templateCache", function ($templateCache) {
   $templateCache.put("uib/template/tooltip/tooltip-template-popup.html",
-    "<div class=\"arrow\"></div>\n" +
+    "<div class=\"tooltip-arrow\"></div>\n" +
     "<div class=\"tooltip-inner\"\n" +
     "  uib-tooltip-template-transclude=\"contentExp()\"\n" +
     "  tooltip-template-transclude-scope=\"originScope()\"></div>\n" +
@@ -7764,7 +7779,7 @@ angular.module("uib/template/tooltip/tooltip-template-popup.html", []).run(["$te
 
 angular.module("uib/template/popover/popover-html.html", []).run(["$templateCache", function ($templateCache) {
   $templateCache.put("uib/template/popover/popover-html.html",
-    "<div class=\"arrow\"></div>\n" +
+    "<div class=\"popover-arrow\"></div>\n" +
     "<h3 class=\"popover-header\" ng-bind=\"uibTitle\" ng-if=\"uibTitle\"></h3>\n" +
     "<div class=\"popover-body\" ng-bind-html=\"contentExp()\"></div>\n" +
     "");
@@ -7772,7 +7787,7 @@ angular.module("uib/template/popover/popover-html.html", []).run(["$templateCach
 
 angular.module("uib/template/popover/popover-template.html", []).run(["$templateCache", function ($templateCache) {
   $templateCache.put("uib/template/popover/popover-template.html",
-    "<div class=\"arrow\"></div>\n" +
+    "<div class=\"popover-arrow\"></div>\n" +
     "\n" +
     "<h3 class=\"popover-header\" ng-bind=\"uibTitle\" ng-if=\"uibTitle\"></h3>\n" +
     "<div class=\"popover-body\"\n" +
@@ -7783,7 +7798,7 @@ angular.module("uib/template/popover/popover-template.html", []).run(["$template
 
 angular.module("uib/template/popover/popover.html", []).run(["$templateCache", function ($templateCache) {
   $templateCache.put("uib/template/popover/popover.html",
-    "<div class=\"arrow\"></div>\n" +
+    "<div class=\"popover-arrow\"></div>\n" +
     "<h3 class=\"popover-header\" ng-bind=\"uibTitle\" ng-if=\"uibTitle\"></h3>\n" +
     "<div class=\"popover-body\" ng-bind=\"content\"></div>\n" +
     "");
