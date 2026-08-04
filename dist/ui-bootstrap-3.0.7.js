@@ -3712,6 +3712,13 @@ angular.module('ui.bootstrap.dropdown', ['ui.bootstrap.multiMap', 'ui.bootstrap.
 
       element.addClass('dropdown-menu');
 
+      // Bootstrap 5's own dropdown-menu positioning CSS (offset, spacer
+      // margin, .dropdown-menu-end alignment) is gated behind the
+      // [data-bs-popper] attribute that real Popper.js sets. This directive
+      // positions the menu itself, but still needs the marker attribute
+      // present for that CSS to take effect.
+      element.attr('data-bs-popper', '');
+
       var tplUrl = attrs.templateUrl;
       if (tplUrl) {
         dropdownCtrl.dropdownMenuTemplateUrl = tplUrl;
@@ -5161,6 +5168,14 @@ angular.module('ui.bootstrap.tooltip', ['ui.bootstrap.position', 'ui.bootstrap.s
                     tooltip.removeClass(options.placementClassPrefix + bs5PlacementClass(lastPlacement));
                     tooltip.addClass(options.placementClassPrefix + bs5PlacementClass(placement));
                   }
+
+                  // Bootstrap 5's arrow fine-positioning CSS is keyed off
+                  // [data-popper-placement], which real Popper.js sets.
+                  // Popper's own vocabulary keeps left/right (unlike the
+                  // bs-tooltip-*/bs-popover-* classes, which Bootstrap
+                  // itself renames to start/end), so this is intentionally
+                  // NOT run through bs5PlacementClass.
+                  tooltip.attr('data-popper-placement', placement.split('-')[0]);
                   
                   // Take into account tooltup margins, since boostrap css draws tooltip arrow inside margins
                   var initialHeight = angular.isDefined(tooltip.offsetHeight) ? tooltip.offsetHeight : tooltip.prop('offsetHeight');

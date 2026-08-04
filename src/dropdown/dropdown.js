@@ -396,6 +396,13 @@ angular.module('ui.bootstrap.dropdown', ['ui.bootstrap.multiMap', 'ui.bootstrap.
 
       element.addClass('dropdown-menu');
 
+      // Bootstrap 5's own dropdown-menu positioning CSS (offset, spacer
+      // margin, .dropdown-menu-end alignment) is gated behind the
+      // [data-bs-popper] attribute that real Popper.js sets. This directive
+      // positions the menu itself, but still needs the marker attribute
+      // present for that CSS to take effect.
+      element.attr('data-bs-popper', '');
+
       var tplUrl = attrs.templateUrl;
       if (tplUrl) {
         dropdownCtrl.dropdownMenuTemplateUrl = tplUrl;
