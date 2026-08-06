@@ -2,7 +2,8 @@ angular.module('ui.bootstrap.dropdown', ['ui.bootstrap.multiMap', 'ui.bootstrap.
 
 .constant('uibDropdownConfig', {
   appendToOpenClass: 'uib-dropdown-open',
-  openClass: 'show'
+  openClass: 'show',
+  placement: 'auto bottom-left'
 })
 
 .service('uibDropdownService', ['$document', '$rootScope', '$$multiMap', function($document, $rootScope, $$multiMap) {
@@ -269,7 +270,15 @@ angular.module('ui.bootstrap.dropdown', ['ui.bootstrap.multiMap', 'ui.bootstrap.
     }
 
     if (appendTo && self.dropdownMenu) {
-      var pos = $position.positionElements($element, self.dropdownMenu, 'bottom-left', true),
+      if (isOpen) {
+        // The 'auto' placement in $position.positionElements() needs to measure
+        // the real size of the menu, which requires it to not be display:none.
+        // Keep it invisible while doing so to avoid a flash at the wrong spot.
+        self.dropdownMenu.css({ display: 'block', visibility: 'hidden' });
+      }
+
+      var placement = $attrs.dropdownPlacement || dropdownConfig.placement;
+      var pos = $position.positionElements($element, self.dropdownMenu, placement, true),
         css,
         rightalign,
         scrollbarPadding,
@@ -277,10 +286,11 @@ angular.module('ui.bootstrap.dropdown', ['ui.bootstrap.multiMap', 'ui.bootstrap.
 
       css = {
         top: pos.top + 'px',
-        display: isOpen ? 'block' : 'none'
+        display: isOpen ? 'block' : 'none',
+        visibility: ''
       };
 
-      rightalign = self.dropdownMenu.hasClass('dropdown-menu-right');
+      rightalign = self.dropdownMenu.hasClass('dropdown-menu-right') || self.dropdownMenu.hasClass('dropdown-menu-end');
       if (!rightalign) {
         css.left = pos.left + 'px';
         css.right = 'auto';
