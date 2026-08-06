@@ -18,6 +18,21 @@ function bs5PlacementClass(placement) {
   return placement;
 }
 
+// Converts a $position.parsePlacement() result (e.g. ['top', 'left']) into
+// real Popper.js's own placement vocabulary (e.g. 'top-start'). Popper only
+// knows 'start'/'end' for the secondary axis: 'left'/'top' is always the
+// leading (start) edge and 'right'/'bottom' the trailing (end) edge,
+// regardless of the primary direction.
+function toPopperPlacement(placementParts) {
+  var primary = placementParts[0];
+  var secondary = placementParts[1];
+  if (!secondary || secondary === 'center') {
+    return primary;
+  }
+  var suffix = (secondary === 'left' || secondary === 'top') ? 'start' : 'end';
+  return primary + '-' + suffix;
+}
+
 angular.module('ui.bootstrap.tooltip', ['ui.bootstrap.position', 'ui.bootstrap.stackedMap'])
 
 /**
@@ -155,11 +170,11 @@ angular.module('ui.bootstrap.tooltip', ['ui.bootstrap.position', 'ui.bootstrap.s
           return function link(scope, element, attrs, tooltipCtrl) {
             var tooltip;
             var tooltipLinkedScope;
+            var popperInstance;
             var transitionTimeout;
             var showTimeout;
             var hideTimeout;
             var positionTimeout;
-            var adjustmentTimeout;
             var appendToBody = angular.isDefined(options.appendToBody) ? options.appendToBody : false;
             var triggers = getTriggers(undefined);
             var hasEnableExp = angular.isDefined(attrs[prefix + 'Enable']);
@@ -174,55 +189,66 @@ angular.module('ui.bootstrap.tooltip', ['ui.bootstrap.position', 'ui.bootstrap.s
               // check if tooltip exists and is not empty
               if (!tooltip || !tooltip.html()) { return; }
 
+              if (popperInstance) {
+                // Already positioned once (e.g. content changed size) --
+                // Popper re-measures from the live DOM, no manual
+                // recalculation needed.
+                popperInstance.update();
+                return;
+              }
+
               if (!positionTimeout) {
                 positionTimeout = $timeout(function() {
-                  var placementClasses = $position.parsePlacement(ttScope.placement);
-                  var ttPosition = $position.positionElements(element, tooltip, ttScope.placement, appendToBody, true);
-                  var placement = ttPosition.placement;
-				  
-                  // need to add classes prior to placement to allow correct tooltip width calculations
-                  if (!tooltip.hasClass(placementClasses[0])) {
-                    tooltip.removeClass(lastPlacement.split('-')[0]);
-                    tooltip.addClass(placementClasses[0]);
-                  }
+                  var placement = toPopperPlacement($position.parsePlacement(ttScope.placement));
+                  var isPopover = options.placementClassPrefix === 'bs-popover-';
+                  var arrowSelector = isPopover ? '.popover-arrow' : '.tooltip-arrow';
+                  var defaultOffset = isPopover ? [0, 8] : [0, 6];
 
-                  if (!tooltip.hasClass(options.placementClassPrefix + bs5PlacementClass(placement))) {
-                    tooltip.removeClass(options.placementClassPrefix + bs5PlacementClass(lastPlacement));
-                    tooltip.addClass(options.placementClassPrefix + bs5PlacementClass(placement));
-                  }
+                  popperInstance = window.Popper.createPopper(element[0], tooltip[0], {
+                    placement: placement,
+                    modifiers: [
+                      { name: 'flip', options: { fallbackPlacements: ['top', 'right', 'bottom', 'left'] } },
+                      { name: 'offset', options: { offset: defaultOffset } },
+                      { name: 'arrow', options: { element: arrowSelector } },
+                      {
+                        name: 'preSetPlacement',
+                        enabled: true,
+                        phase: 'beforeMain',
+                        fn: function(_ref) {
+                          // Pre-set the placement attribute so the arrow's
+                          // CSS dimensions (border widths differ per side)
+                          // are read correctly before Popper measures it --
+                          // same trick real Bootstrap 5 uses.
+                          tooltip.attr('data-popper-placement', _ref.state.placement);
+                        }
+                      },
+                      {
+                        name: 'syncPlacementClasses',
+                        enabled: true,
+                        phase: 'afterWrite',
+                        fn: function(_ref) {
+                          var resolvedPlacement = _ref.state.placement;
+                          var basePlacement = resolvedPlacement.split('-')[0];
 
-                  // Bootstrap 5's arrow fine-positioning CSS is keyed off
-                  // [data-popper-placement], which real Popper.js sets.
-                  // Popper's own vocabulary keeps left/right (unlike the
-                  // bs-tooltip-*/bs-popover-* classes, which Bootstrap
-                  // itself renames to start/end), so this is intentionally
-                  // NOT run through bs5PlacementClass.
-                  tooltip.attr('data-popper-placement', placement.split('-')[0]);
-                  
-                  // Take into account tooltup margins, since boostrap css draws tooltip arrow inside margins
-                  var initialHeight = angular.isDefined(tooltip.offsetHeight) ? tooltip.offsetHeight : tooltip.prop('offsetHeight');
-                  var elementPos = appendToBody ? $position.offset(element) : $position.position(element);
-                  tooltip.css({ top: ttPosition.top + 'px', left: ttPosition.left + 'px' });
+                          if (!tooltip.hasClass(basePlacement)) {
+                            tooltip.removeClass(lastPlacement.split('-')[0]);
+                            tooltip.addClass(basePlacement);
+                          }
 
-                  adjustmentTimeout = $timeout(function() {
-                    var currentHeight = angular.isDefined(tooltip.offsetHeight) ? tooltip.offsetHeight : tooltip.prop('offsetHeight');
-                    var adjustment = $position.adjustTop(placementClasses, elementPos, initialHeight, currentHeight);
-                    if (adjustment) {
-                      tooltip.css(adjustment);
+                          var bs5Class = options.placementClassPrefix + bs5PlacementClass(basePlacement);
+                          if (!tooltip.hasClass(bs5Class)) {
+                            tooltip.removeClass(options.placementClassPrefix + bs5PlacementClass(lastPlacement));
+                            tooltip.addClass(bs5Class);
+                          }
+
+                          lastPlacement = resolvedPlacement;
+                        }
+                      }
+                    ],
+                    onFirstUpdate: function() {
+                      tooltip.removeClass('uib-position-measure');
                     }
-                    adjustmentTimeout = null;
-                  }, 0, false);
-
-                  // first time through tt element will have the
-                  // uib-position-measure class or if the placement
-                  // has changed we need to position the arrow.
-                  if (tooltip.hasClass('uib-position-measure')) {
-                    $position.positionArrow(tooltip, ttPosition.placement);
-                    tooltip.removeClass('uib-position-measure');
-                  } else if (lastPlacement !== ttPosition.placement) {
-                    $position.positionArrow(tooltip, ttPosition.placement);
-                  }
-                  lastPlacement = ttPosition.placement;
+                  });
 
                   positionTimeout = null;
                 }, 0, false);
@@ -373,13 +399,15 @@ angular.module('ui.bootstrap.tooltip', ['ui.bootstrap.position', 'ui.bootstrap.s
               cancelHide();
               unregisterObservers();
 
+              if (popperInstance) {
+                popperInstance.destroy();
+                popperInstance = null;
+              }
+
               if (tooltip) {
                 tooltip.remove();
 
                 tooltip = null;
-                if (adjustmentTimeout) {
-                  $timeout.cancel(adjustmentTimeout);
-                }
               }
 
               openedTooltips.remove(ttScope);

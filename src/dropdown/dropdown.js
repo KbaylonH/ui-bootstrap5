@@ -3,7 +3,7 @@ angular.module('ui.bootstrap.dropdown', ['ui.bootstrap.multiMap', 'ui.bootstrap.
 .constant('uibDropdownConfig', {
   appendToOpenClass: 'uib-dropdown-open',
   openClass: 'show',
-  placement: 'auto bottom-left'
+  placement: 'bottom-start'
 })
 
 .service('uibDropdownService', ['$document', '$rootScope', '$$multiMap', function($document, $rootScope, $$multiMap) {
@@ -135,7 +135,7 @@ angular.module('ui.bootstrap.dropdown', ['ui.bootstrap.multiMap', 'ui.bootstrap.
   };
 }])
 
-.controller('UibDropdownController', ['$scope', '$element', '$attrs', '$parse', 'uibDropdownConfig', 'uibDropdownService', '$animate', '$uibPosition', '$document', '$compile', '$templateRequest', function($scope, $element, $attrs, $parse, dropdownConfig, uibDropdownService, $animate, $position, $document, $compile, $templateRequest) {
+.controller('UibDropdownController', ['$scope', '$element', '$attrs', '$parse', 'uibDropdownConfig', 'uibDropdownService', '$animate', '$document', '$compile', '$templateRequest', function($scope, $element, $attrs, $parse, dropdownConfig, uibDropdownService, $animate, $document, $compile, $templateRequest) {
   var self = this,
     scope = $scope.$new(), // create a child scope so we are not polluting original one
     templateScope,
@@ -146,9 +146,17 @@ angular.module('ui.bootstrap.dropdown', ['ui.bootstrap.multiMap', 'ui.bootstrap.
     toggleInvoker = $attrs.onToggle ? $parse($attrs.onToggle) : angular.noop,
     keynavEnabled = false,
     selectedOption = null,
+    popperInstance = null,
     body = $document.find('body');
 
   $element.addClass('dropdown');
+
+  $scope.$on('$destroy', function() {
+    if (popperInstance) {
+      popperInstance.destroy();
+      popperInstance = null;
+    }
+  });
 
   this.init = function() {
     if ($attrs.isOpen) {
@@ -270,58 +278,31 @@ angular.module('ui.bootstrap.dropdown', ['ui.bootstrap.multiMap', 'ui.bootstrap.
     }
 
     if (appendTo && self.dropdownMenu) {
+      if (popperInstance) {
+        popperInstance.destroy();
+        popperInstance = null;
+      }
+
       if (isOpen) {
-        // The 'auto' placement in $position.positionElements() needs to measure
-        // the real size of the menu, which requires it to not be display:none.
-        // Keep it invisible while doing so to avoid a flash at the wrong spot.
-        self.dropdownMenu.css({ display: 'block', visibility: 'hidden' });
-      }
+        self.dropdownMenu.css('display', 'block');
 
-      var placement = $attrs.dropdownPlacement || dropdownConfig.placement;
-      var pos = $position.positionElements($element, self.dropdownMenu, placement, true),
-        css,
-        rightalign,
-        scrollbarPadding,
-        scrollbarWidth = 0;
+        // Real Popper.js owns collision detection (flip/shift against the
+        // viewport) here instead of $position's hand-rolled math -- it
+        // already ships with sane defaults (flip + preventOverflow) with no
+        // extra modifier config needed. dropdown-menu-end (Bootstrap 5's
+        // rename of dropdown-menu-right) maps directly to Popper's
+        // 'bottom-end' placement.
+        var rightalign = self.dropdownMenu.hasClass('dropdown-menu-right') || self.dropdownMenu.hasClass('dropdown-menu-end');
+        var placement = $attrs.dropdownPlacement || (rightalign ? 'bottom-end' : dropdownConfig.placement);
 
-      css = {
-        top: pos.top + 'px',
-        display: isOpen ? 'block' : 'none',
-        visibility: ''
-      };
-
-      rightalign = self.dropdownMenu.hasClass('dropdown-menu-right') || self.dropdownMenu.hasClass('dropdown-menu-end');
-      if (!rightalign) {
-        css.left = pos.left + 'px';
-        css.right = 'auto';
+        popperInstance = window.Popper.createPopper($element[0], self.dropdownMenu[0], {
+          placement: placement,
+          // Matches real Bootstrap 5's own dropdown offset default.
+          modifiers: [{ name: 'offset', options: { offset: [0, 2] } }]
+        });
       } else {
-        css.left = 'auto';
-        scrollbarPadding = $position.scrollbarPadding(appendTo);
-
-        if (scrollbarPadding.heightOverflow && scrollbarPadding.scrollbarWidth) {
-          scrollbarWidth = scrollbarPadding.scrollbarWidth;
-        }
-
-        css.right = window.innerWidth - scrollbarWidth -
-          (pos.left + $element.prop('offsetWidth')) + 'px';
+        self.dropdownMenu.css('display', 'none');
       }
-
-      // Need to adjust our positioning to be relative to the appendTo container
-      // if it's not the body element
-      if (!appendToBody) {
-        var appendOffset = $position.offset(appendTo);
-
-        css.top = pos.top - appendOffset.top + 'px';
-
-        if (!rightalign) {
-          css.left = pos.left - appendOffset.left + 'px';
-        } else {
-          css.right = window.innerWidth -
-            (pos.left - appendOffset.left + $element.prop('offsetWidth')) + 'px';
-        }
-      }
-
-      self.dropdownMenu.css(css);
     }
 
     // find openContainer by uib-dropdown-menu directive
