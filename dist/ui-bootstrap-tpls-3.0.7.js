@@ -2,7 +2,7 @@
  * ui-bootstrap4
  * http://morgul.github.io/ui-bootstrap4/
 
- * Version: 3.0.7 - 2026-08-06
+ * Version: 3.0.7 - 2026-08-07
  * License: MIT
  */angular.module("ui.bootstrap", ["ui.bootstrap.tpls", "ui.bootstrap.collapse","ui.bootstrap.tabindex","ui.bootstrap.accordion","ui.bootstrap.alert","ui.bootstrap.buttons","ui.bootstrap.carousel","ui.bootstrap.common","ui.bootstrap.dateparser","ui.bootstrap.isClass","ui.bootstrap.datepicker","ui.bootstrap.position","ui.bootstrap.datepickerPopup","ui.bootstrap.debounce","ui.bootstrap.multiMap","ui.bootstrap.dropdown","ui.bootstrap.stackedMap","ui.bootstrap.modal","ui.bootstrap.paging","ui.bootstrap.pager","ui.bootstrap.pagination","ui.bootstrap.tooltip","ui.bootstrap.popover","ui.bootstrap.progressbar","ui.bootstrap.rating","ui.bootstrap.tabs","ui.bootstrap.timepicker","ui.bootstrap.typeahead"]);
 angular.module("ui.bootstrap.tpls", ["uib/template/accordion/accordion-group.html","uib/template/accordion/accordion.html","uib/template/alert/alert.html","uib/template/carousel/carousel.html","uib/template/carousel/slide.html","uib/template/datepicker/datepicker.html","uib/template/datepicker/day.html","uib/template/datepicker/month.html","uib/template/datepicker/year.html","uib/template/datepickerPopup/popup.html","uib/template/modal/window.html","uib/template/pager/pager.html","uib/template/pagination/pagination.html","uib/template/tooltip/tooltip-html-popup.html","uib/template/tooltip/tooltip-popup.html","uib/template/tooltip/tooltip-template-popup.html","uib/template/popover/popover-html.html","uib/template/popover/popover-template.html","uib/template/popover/popover.html","uib/template/progressbar/bar.html","uib/template/progressbar/progress.html","uib/template/progressbar/progressbar.html","uib/template/rating/rating.html","uib/template/tabs/tab.html","uib/template/tabs/tabset.html","uib/template/timepicker/timepicker.html","uib/template/typeahead/typeahead-match.html","uib/template/typeahead/typeahead-popup.html"]);
@@ -3603,19 +3603,26 @@ angular.module('ui.bootstrap.dropdown', ['ui.bootstrap.multiMap', 'ui.bootstrap.
       if (isOpen) {
         self.dropdownMenu.css('display', 'block');
 
-        // Real Popper.js owns collision detection (flip/shift against the
-        // viewport) here instead of $position's hand-rolled math -- it
-        // already ships with sane defaults (flip + preventOverflow) with no
-        // extra modifier config needed. dropdown-menu-end (Bootstrap 5's
-        // rename of dropdown-menu-right) maps directly to Popper's
-        // 'bottom-end' placement.
+        // dropdown-menu-end (Bootstrap 5's rename of dropdown-menu-right)
+        // maps directly to Popper's 'bottom-end' placement.
         var rightalign = self.dropdownMenu.hasClass('dropdown-menu-right') || self.dropdownMenu.hasClass('dropdown-menu-end');
         var placement = $attrs.dropdownPlacement || (rightalign ? 'bottom-end' : dropdownConfig.placement);
 
-        popperInstance = window.Popper.createPopper($element[0], self.dropdownMenu[0], {
+        // Reference the actual toggle button, not this controller's own
+        // element (a wrapper div) -- same as real Bootstrap 5's
+        // Dropdown._createPopper(), which uses `this._element` (the
+        // element data-bs-toggle="dropdown" is on), not its parent.
+        var referenceElement = self.toggleElement ? self.toggleElement[0] : $element[0];
+
+        // Same modifiers as real Bootstrap 5's Dropdown._getPopperConfig():
+        // preventOverflow (viewport collision) + offset. flip is already
+        // part of Popper's own default modifier set, no extra config needed.
+        popperInstance = window.Popper.createPopper(referenceElement, self.dropdownMenu[0], {
           placement: placement,
-          // Matches real Bootstrap 5's own dropdown offset default.
-          modifiers: [{ name: 'offset', options: { offset: [0, 2] } }]
+          modifiers: [
+            { name: 'preventOverflow', options: { boundary: 'clippingParents' } },
+            { name: 'offset', options: { offset: [0, 2] } }
+          ]
         });
       } else {
         self.dropdownMenu.css('display', 'none');
