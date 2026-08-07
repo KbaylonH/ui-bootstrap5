@@ -3593,7 +3593,21 @@ angular.module('ui.bootstrap.dropdown', ['ui.bootstrap.multiMap', 'ui.bootstrap.
       }
     }
 
-    if (appendTo && self.dropdownMenu) {
+    if (self.dropdownMenu) {
+      // Real Bootstrap 5 always positions dropdown-menu via Popper,
+      // regardless of where it lives in the DOM -- Popper computes pixel
+      // offsets from getBoundingClientRect() deltas, so it doesn't care
+      // whether the menu stayed a sibling of the toggle or got moved to
+      // <body>. Do the same here instead of only using Popper for the
+      // append-to-body case: a plain CSS position (relying on
+      // .dropdown-menu[data-bs-popper]'s static top/left) only looks right
+      // when the menu's containing block happens to be its immediate
+      // .dropdown parent. Table cells force that parent to
+      // position:static (see .table tr>td .dropdown in _tables.scss) so it
+      // can escape the table's overflow clipping without appendTo -- but
+      // that also means its containing block becomes some faraway
+      // ancestor, and pure CSS has no way to compute the right offset
+      // against that. Popper does.
       if (popperInstance) {
         popperInstance.destroy();
         popperInstance = null;
