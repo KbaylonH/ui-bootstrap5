@@ -209,6 +209,7 @@ angular.module('ui.bootstrap.tooltip', ['ui.bootstrap.position', 'ui.bootstrap.s
                     modifiers: [
                       { name: 'flip', options: { fallbackPlacements: ['top', 'right', 'bottom', 'left'] } },
                       { name: 'offset', options: { offset: defaultOffset } },
+                      { name: 'preventOverflow', options: { boundary: 'clippingParents' } },
                       { name: 'arrow', options: { element: arrowSelector } },
                       {
                         name: 'preSetPlacement',
