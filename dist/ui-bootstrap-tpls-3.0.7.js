@@ -7635,16 +7635,16 @@ angular.module("uib/template/datepicker/day.html", []).run(["$templateCache", fu
     "  <thead>\n" +
     "    <tr>\n" +
     "      <th>\n" +
-    "        <button type=\"button\" class=\"btn btn-secondary btn-sm float-start uib-left\" ng-click=\"move(-1)\" tabindex=\"-1\">\n" +
+    "        <button type=\"button\" class=\"btn btn-default btn-sm float-start uib-left\" ng-click=\"move(-1)\" tabindex=\"-1\">\n" +
     "          <i aria-hidden=\"true\" class=\"fa-svg-icon\">\n" +
     "            <svg width=\"1792\" height=\"1792\" viewBox=\"0 0 1792 1792\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M1427 301l-531 531 531 531q19 19 19 45t-19 45l-166 166q-19 19-45 19t-45-19l-742-742q-19-19-19-45t19-45l742-742q19-19 45-19t45 19l166 166q19 19 19 45t-19 45z\"/></svg>\n" +
     "          </i>\n" +
     "          <span class=\"visually-hidden\">previous</span>\n" +
     "        </button>\n" +
     "      </th>\n" +
-    "      <th colspan=\"{{::5 + showWeeks}}\"><button id=\"{{::uniqueId}}-title\" role=\"heading\" aria-live=\"assertive\" aria-atomic=\"true\" type=\"button\" class=\"btn btn-secondary btn-sm uib-title\" ng-click=\"toggleMode()\" ng-disabled=\"datepickerMode === maxMode\" tabindex=\"-1\"><strong>{{title}}</strong></button></th>\n" +
+    "      <th colspan=\"{{::5 + showWeeks}}\"><button id=\"{{::uniqueId}}-title\" role=\"heading\" aria-live=\"assertive\" aria-atomic=\"true\" type=\"button\" class=\"btn btn-default btn-sm uib-title\" ng-click=\"toggleMode()\" ng-disabled=\"datepickerMode === maxMode\" tabindex=\"-1\"><strong>{{title}}</strong></button></th>\n" +
     "      <th>\n" +
-    "        <button type=\"button\" class=\"btn btn-secondary btn-sm float-end uib-right\" ng-click=\"move(1)\" tabindex=\"-1\">\n" +
+    "        <button type=\"button\" class=\"btn btn-default btn-sm float-end uib-right\" ng-click=\"move(1)\" tabindex=\"-1\">\n" +
     "          <i aria-hidden=\"true\" class=\"fa-svg-icon\">\n" +
     "            <svg width=\"1792\" height=\"1792\" viewBox=\"0 0 1792 1792\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M1363 877l-742 742q-19 19-45 19t-45-19l-166-166q-19-19-19-45t19-45l531-531-531-531q-19-19-19-45t19-45l166-166q19-19 45-19t45 19l742 742q19 19 19 45t-19 45z\"/></svg>\n" +
     "          </i>\n" +
@@ -7663,7 +7663,7 @@ angular.module("uib/template/datepicker/day.html", []).run(["$templateCache", fu
     "      <td ng-repeat=\"dt in row\" class=\"uib-day text-center\" role=\"gridcell\"\n" +
     "        id=\"{{::dt.uid}}\"\n" +
     "        ng-class=\"::dt.customClass\">\n" +
-    "        <button type=\"button\" class=\"btn btn-secondary btn-sm\"\n" +
+    "        <button type=\"button\" class=\"btn btn-default btn-sm\"\n" +
     "          uib-is-class=\"\n" +
     "            'btn-info' for selectedDt,\n" +
     "            'active' for activeDt\n" +
@@ -7684,16 +7684,16 @@ angular.module("uib/template/datepicker/month.html", []).run(["$templateCache", 
     "  <thead>\n" +
     "    <tr>\n" +
     "      <th>\n" +
-    "        <button type=\"button\" class=\"btn btn-secondary btn-sm float-start uib-left\" ng-click=\"move(-1)\" tabindex=\"-1\">\n" +
+    "        <button type=\"button\" class=\"btn btn-default btn-sm float-start uib-left\" ng-click=\"move(-1)\" tabindex=\"-1\">\n" +
     "          <i aria-hidden=\"true\" class=\"fa-svg-icon\">\n" +
     "            <svg width=\"1792\" height=\"1792\" viewBox=\"0 0 1792 1792\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M1427 301l-531 531 531 531q19 19 19 45t-19 45l-166 166q-19 19-45 19t-45-19l-742-742q-19-19-19-45t19-45l742-742q19-19 45-19t45 19l166 166q19 19 19 45t-19 45z\"/></svg>\n" +
     "          </i>\n" +
     "          <span class=\"visually-hidden\">previous</span>\n" +
     "        </button>\n" +
     "      </th>\n" +
-    "      <th colspan=\"{{::yearHeaderColspan}}\"><button id=\"{{::uniqueId}}-title\" role=\"heading\" aria-live=\"assertive\" aria-atomic=\"true\" type=\"button\" class=\"btn btn-secondary btn-sm uib-title\" ng-click=\"toggleMode()\" ng-disabled=\"datepickerMode === maxMode\" tabindex=\"-1\"><strong>{{title}}</strong></button></th>\n" +
+    "      <th colspan=\"{{::yearHeaderColspan}}\"><button id=\"{{::uniqueId}}-title\" role=\"heading\" aria-live=\"assertive\" aria-atomic=\"true\" type=\"button\" class=\"btn btn-default btn-sm uib-title\" ng-click=\"toggleMode()\" ng-disabled=\"datepickerMode === maxMode\" tabindex=\"-1\"><strong>{{title}}</strong></button></th>\n" +
     "      <th>\n" +
-    "        <button type=\"button\" class=\"btn btn-secondary btn-sm float-end uib-right\" ng-click=\"move(1)\" tabindex=\"-1\">\n" +
+    "        <button type=\"button\" class=\"btn btn-default btn-sm float-end uib-right\" ng-click=\"move(1)\" tabindex=\"-1\">\n" +
     "          <i aria-hidden=\"true\" class=\"fa-svg-icon\">\n" +
     "            <svg width=\"1792\" height=\"1792\" viewBox=\"0 0 1792 1792\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M1363 877l-742 742q-19 19-45 19t-45-19l-166-166q-19-19-19-45t19-45l531-531-531-531q-19-19-19-45t19-45l166-166q19-19 45-19t45 19l742 742q19 19 19 45t-19 45z\"/></svg>\n" +
     "          </i>\n" +
@@ -7707,7 +7707,7 @@ angular.module("uib/template/datepicker/month.html", []).run(["$templateCache", 
     "      <td ng-repeat=\"dt in row\" class=\"uib-month text-center\" role=\"gridcell\"\n" +
     "        id=\"{{::dt.uid}}\"\n" +
     "        ng-class=\"::dt.customClass\">\n" +
-    "        <button type=\"button\" class=\"btn btn-secondary\"\n" +
+    "        <button type=\"button\" class=\"btn btn-default\"\n" +
     "          uib-is-class=\"\n" +
     "            'btn-info' for selectedDt,\n" +
     "            'active' for activeDt\n" +
@@ -7728,7 +7728,7 @@ angular.module("uib/template/datepicker/year.html", []).run(["$templateCache", f
     "  <thead>\n" +
     "  <tr>\n" +
     "    <th>\n" +
-    "      <button type=\"button\" class=\"btn btn-secondary btn-sm float-start uib-left\" ng-click=\"move(-1)\" tabindex=\"-1\">\n" +
+    "      <button type=\"button\" class=\"btn btn-default btn-sm float-start uib-left\" ng-click=\"move(-1)\" tabindex=\"-1\">\n" +
     "        <i aria-hidden=\"true\" class=\"fa-svg-icon\">\n" +
     "          <svg width=\"1792\" height=\"1792\" viewBox=\"0 0 1792 1792\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M1427 301l-531 531 531 531q19 19 19 45t-19 45l-166 166q-19 19-45 19t-45-19l-742-742q-19-19-19-45t19-45l742-742q19-19 45-19t45 19l166 166q19 19 19 45t-19 45z\"/></svg>\n" +
     "        </i>\n" +
@@ -7737,13 +7737,13 @@ angular.module("uib/template/datepicker/year.html", []).run(["$templateCache", f
     "    </th>\n" +
     "    <th colspan=\"{{::columns - 2}}\">\n" +
     "      <button id=\"{{::uniqueId}}-title\" role=\"heading\" aria-live=\"assertive\" aria-atomic=\"true\" type=\"button\"\n" +
-    "              class=\"btn btn-secondary btn-sm uib-title\" ng-click=\"toggleMode()\"\n" +
+    "              class=\"btn btn-default btn-sm uib-title\" ng-click=\"toggleMode()\"\n" +
     "              ng-disabled=\"datepickerMode === maxMode\" tabindex=\"-1\">\n" +
     "        <strong>{{title}}</strong>\n" +
     "      </button>\n" +
     "    </th>\n" +
     "    <th>\n" +
-    "      <button type=\"button\" class=\"btn btn-secondary btn-sm float-end uib-right\" ng-click=\"move(1)\" tabindex=\"-1\">\n" +
+    "      <button type=\"button\" class=\"btn btn-default btn-sm float-end uib-right\" ng-click=\"move(1)\" tabindex=\"-1\">\n" +
     "        <i aria-hidden=\"true\" class=\"fa-svg-icon\">\n" +
     "          <svg width=\"1792\" height=\"1792\" viewBox=\"0 0 1792 1792\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M1363 877l-742 742q-19 19-45 19t-45-19l-166-166q-19-19-19-45t19-45l531-531-531-531q-19-19-19-45t19-45l166-166q19-19 45-19t45 19l742 742q19 19 19 45t-19 45z\"/></svg>\n" +
     "        </i>\n" +
@@ -7757,7 +7757,7 @@ angular.module("uib/template/datepicker/year.html", []).run(["$templateCache", f
     "    <td ng-repeat=\"dt in row\" class=\"uib-year text-center\" role=\"gridcell\"\n" +
     "        id=\"{{::dt.uid}}\"\n" +
     "        ng-class=\"::dt.customClass\">\n" +
-    "      <button type=\"button\" class=\"btn btn-secondary\"\n" +
+    "      <button type=\"button\" class=\"btn btn-default\"\n" +
     "              uib-is-class=\"\n" +
     "            'btn-info' for selectedDt,\n" +
     "            'active' for activeDt\n" +
