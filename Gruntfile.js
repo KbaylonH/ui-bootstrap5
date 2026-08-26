@@ -10,7 +10,7 @@ module.exports = function(grunt) {
 
     grunt.initConfig({
         ngversion: '1.6.1',
-        bsversion: '4.1.1',
+        bsversion: '5.3.3',
         modules: [],//to be filled in by build task
         pkg: grunt.file.readJSON('package.json'),
         dist: 'dist',
@@ -430,6 +430,7 @@ module.exports = function(grunt) {
 
         grunt.log.writeln(`Mapping file skipped till someone wants to fix.`);
 
+        done();
         return;
 
 //         const versionsMappingFile = 'dist/versions-mapping.json';

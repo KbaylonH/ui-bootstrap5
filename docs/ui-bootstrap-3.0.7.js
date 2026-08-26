@@ -4854,17 +4854,12 @@ angular.module('ui.bootstrap.offcanvas', ['ui.bootstrap.position'])
 
       offcanvasService.open(self);
 
-      // Wait for exactly one transition (triggered by adding 'showing'),
-      // matching real Bootstrap's single _queueCallback per direction. The
-      // final class swap below is a plain, instant classList mutation --
-      // NOT a second $animate-mediated wait -- since 'showing' and 'show'
-      // map to the same CSS state (transform: none) and nothing should
-      // visually change between them.
       $animate.addClass($element, 'showing').then(function() {
-        $element.addClass('show');
-        $element.removeClass('showing');
-        activateFocusTrap();
-        shownExpr($scope, { relatedTarget: relatedTarget });
+        $animate.removeClass($element, 'showing');
+        $animate.addClass($element, 'show').then(function() {
+          activateFocusTrap();
+          shownExpr($scope, { relatedTarget: relatedTarget });
+        });
       });
     };
 
@@ -4887,33 +4882,26 @@ angular.module('ui.bootstrap.offcanvas', ['ui.bootstrap.position'])
       isShown = false;
       updateBoundIsOpen(false);
 
-      // Start the backdrop fade-out in parallel with the panel's own
-      // slide-out transition (matches real Bootstrap's hide(), which calls
-      // this._backdrop.hide() immediately rather than waiting for the
-      // panel's transition to finish first) -- otherwise the backdrop stays
-      // fully opaque for the whole slide-out and only starts fading once
-      // the panel is already gone, which reads as a flash/flicker.
-      removeBackdrop();
-
-      // Wait for exactly one transition (triggered by adding 'hiding' while
-      // 'show' is still present), matching real Bootstrap's single
-      // _queueCallback per direction. The final cleanup below is a plain,
-      // instant classList mutation, not a second $animate-mediated wait.
       $animate.addClass($element, 'hiding').then(function() {
-        $element.removeClass('show hiding');
-        $element.removeAttr('aria-modal');
-        $element.removeAttr('role');
+        // Backdrop removal is an independent visual concern - fire and
+        // forget rather than chaining, to keep this callback flat.
+        removeBackdrop();
 
-        if (!self.getScroll()) {
-          unlockScroll();
-        }
+        $animate.removeClass($element, 'show hiding').then(function() {
+          $element.removeAttr('aria-modal');
+          $element.removeAttr('role');
 
-        offcanvasService.close(self);
-        hiddenExpr($scope);
+          if (!self.getScroll()) {
+            unlockScroll();
+          }
 
-        if (toggleToRefocus && toggleToRefocus.focus) {
-          toggleToRefocus.focus();
-        }
+          offcanvasService.close(self);
+          hiddenExpr($scope);
+
+          if (toggleToRefocus && toggleToRefocus.focus) {
+            toggleToRefocus.focus();
+          }
+        });
       });
     };
 
@@ -4931,12 +4919,7 @@ angular.module('ui.bootstrap.offcanvas', ['ui.bootstrap.position'])
     // simplified version of what modal.js does for its backdrop, without
     // the stacking bookkeeping (offcanvas never has more than one open).
     function createBackdrop() {
-      // 'fade' is what real Bootstrap's Backdrop._getElement() adds when
-      // isAnimated is true -- it's the class that actually *defines* the
-      // opacity transition CSS rule. Without it there's no transition at
-      // all, so $animate finds nothing to wait for and the backdrop just
-      // vanishes instantly instead of fading out alongside the panel.
-      backdropElement = angular.element('<div class="offcanvas-backdrop fade"></div>');
+      backdropElement = angular.element('<div class="offcanvas-backdrop"></div>');
       $animate.enter(backdropElement, $document.find('body'));
       $animate.addClass(backdropElement, 'show');
 

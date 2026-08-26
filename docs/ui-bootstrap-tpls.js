@@ -2,7 +2,7 @@
  * ui-bootstrap4
  * http://morgul.github.io/ui-bootstrap4/
 
- * Version: 3.0.6 - 2018-11-17
+ * Version: 3.0.7 - 2026-08-07
  * License: MIT
  */angular.module("ui.bootstrap", ["ui.bootstrap.tpls", "ui.bootstrap.collapse","ui.bootstrap.tabindex","ui.bootstrap.accordion","ui.bootstrap.alert","ui.bootstrap.buttons","ui.bootstrap.carousel","ui.bootstrap.common","ui.bootstrap.dateparser","ui.bootstrap.isClass","ui.bootstrap.datepicker","ui.bootstrap.position","ui.bootstrap.datepickerPopup","ui.bootstrap.debounce","ui.bootstrap.multiMap","ui.bootstrap.dropdown","ui.bootstrap.stackedMap","ui.bootstrap.modal","ui.bootstrap.paging","ui.bootstrap.pager","ui.bootstrap.pagination","ui.bootstrap.tooltip","ui.bootstrap.popover","ui.bootstrap.progressbar","ui.bootstrap.rating","ui.bootstrap.tabs","ui.bootstrap.timepicker","ui.bootstrap.typeahead"]);
 angular.module("ui.bootstrap.tpls", ["uib/template/accordion/accordion-group.html","uib/template/accordion/accordion.html","uib/template/alert/alert.html","uib/template/carousel/carousel.html","uib/template/carousel/slide.html","uib/template/datepicker/datepicker.html","uib/template/datepicker/day.html","uib/template/datepicker/month.html","uib/template/datepicker/year.html","uib/template/datepickerPopup/popup.html","uib/template/modal/window.html","uib/template/pager/pager.html","uib/template/pagination/pagination.html","uib/template/tooltip/tooltip-html-popup.html","uib/template/tooltip/tooltip-popup.html","uib/template/tooltip/tooltip-template-popup.html","uib/template/popover/popover-html.html","uib/template/popover/popover-template.html","uib/template/popover/popover.html","uib/template/progressbar/bar.html","uib/template/progressbar/progress.html","uib/template/progressbar/progressbar.html","uib/template/rating/rating.html","uib/template/tabs/tab.html","uib/template/tabs/tabset.html","uib/template/timepicker/timepicker.html","uib/template/typeahead/typeahead-match.html","uib/template/typeahead/typeahead-popup.html"]);
@@ -3319,7 +3319,8 @@ angular.module('ui.bootstrap.dropdown', ['ui.bootstrap.multiMap', 'ui.bootstrap.
 
 .constant('uibDropdownConfig', {
   appendToOpenClass: 'uib-dropdown-open',
-  openClass: 'show'
+  openClass: 'show',
+  placement: 'bottom-start'
 })
 
 .service('uibDropdownService', ['$document', '$rootScope', '$$multiMap', function($document, $rootScope, $$multiMap) {
@@ -3451,7 +3452,7 @@ angular.module('ui.bootstrap.dropdown', ['ui.bootstrap.multiMap', 'ui.bootstrap.
   };
 }])
 
-.controller('UibDropdownController', ['$scope', '$element', '$attrs', '$parse', 'uibDropdownConfig', 'uibDropdownService', '$animate', '$uibPosition', '$document', '$compile', '$templateRequest', function($scope, $element, $attrs, $parse, dropdownConfig, uibDropdownService, $animate, $position, $document, $compile, $templateRequest) {
+.controller('UibDropdownController', ['$scope', '$element', '$attrs', '$parse', 'uibDropdownConfig', 'uibDropdownService', '$animate', '$document', '$compile', '$templateRequest', function($scope, $element, $attrs, $parse, dropdownConfig, uibDropdownService, $animate, $document, $compile, $templateRequest) {
   var self = this,
     scope = $scope.$new(), // create a child scope so we are not polluting original one
     templateScope,
@@ -3462,9 +3463,17 @@ angular.module('ui.bootstrap.dropdown', ['ui.bootstrap.multiMap', 'ui.bootstrap.
     toggleInvoker = $attrs.onToggle ? $parse($attrs.onToggle) : angular.noop,
     keynavEnabled = false,
     selectedOption = null,
+    popperInstance = null,
     body = $document.find('body');
 
   $element.addClass('dropdown');
+
+  $scope.$on('$destroy', function() {
+    if (popperInstance) {
+      popperInstance.destroy();
+      popperInstance = null;
+    }
+  });
 
   this.init = function() {
     if ($attrs.isOpen) {
@@ -3511,8 +3520,8 @@ angular.module('ui.bootstrap.dropdown', ['ui.bootstrap.multiMap', 'ui.bootstrap.
 
   scope.focusDropdownEntry = function(keyCode) {
     var elems = self.dropdownMenu ? //If append to body is used.
-      angular.element(self.dropdownMenu).find('.dropdown-item') :
-      $element.find('div').eq(0).find('a.');
+      angular.element(self.dropdownMenu[0].querySelectorAll('.dropdown-item')) :
+      angular.element($element[0].querySelectorAll('div .dropdown-item'));
 
     switch (keyCode) {
       case 40: {
@@ -3585,50 +3594,53 @@ angular.module('ui.bootstrap.dropdown', ['ui.bootstrap.multiMap', 'ui.bootstrap.
       }
     }
 
-    if (appendTo && self.dropdownMenu) {
-      var pos = $position.positionElements($element, self.dropdownMenu, 'bottom-left', true),
-        css,
-        rightalign,
-        scrollbarPadding,
-        scrollbarWidth = 0;
+    if (self.dropdownMenu) {
+      // Real Bootstrap 5 always positions dropdown-menu via Popper,
+      // regardless of where it lives in the DOM -- Popper computes pixel
+      // offsets from getBoundingClientRect() deltas, so it doesn't care
+      // whether the menu stayed a sibling of the toggle or got moved to
+      // <body>. Do the same here instead of only using Popper for the
+      // append-to-body case: a plain CSS position (relying on
+      // .dropdown-menu[data-bs-popper]'s static top/left) only looks right
+      // when the menu's containing block happens to be its immediate
+      // .dropdown parent. Table cells force that parent to
+      // position:static (see .table tr>td .dropdown in _tables.scss) so it
+      // can escape the table's overflow clipping without appendTo -- but
+      // that also means its containing block becomes some faraway
+      // ancestor, and pure CSS has no way to compute the right offset
+      // against that. Popper does.
+      if (popperInstance) {
+        popperInstance.destroy();
+        popperInstance = null;
+      }
 
-      css = {
-        top: pos.top + 'px',
-        display: isOpen ? 'block' : 'none'
-      };
+      if (isOpen) {
+        self.dropdownMenu.css('display', 'block');
 
-      rightalign = self.dropdownMenu.hasClass('dropdown-menu-right');
-      if (!rightalign) {
-        css.left = pos.left + 'px';
-        css.right = 'auto';
+        // dropdown-menu-end (Bootstrap 5's rename of dropdown-menu-right)
+        // maps directly to Popper's 'bottom-end' placement.
+        var rightalign = self.dropdownMenu.hasClass('dropdown-menu-right') || self.dropdownMenu.hasClass('dropdown-menu-end');
+        var placement = $attrs.dropdownPlacement || (rightalign ? 'bottom-end' : dropdownConfig.placement);
+
+        // Reference the actual toggle button, not this controller's own
+        // element (a wrapper div) -- same as real Bootstrap 5's
+        // Dropdown._createPopper(), which uses `this._element` (the
+        // element data-bs-toggle="dropdown" is on), not its parent.
+        var referenceElement = self.toggleElement ? self.toggleElement[0] : $element[0];
+
+        // Same modifiers as real Bootstrap 5's Dropdown._getPopperConfig():
+        // preventOverflow (viewport collision) + offset. flip is already
+        // part of Popper's own default modifier set, no extra config needed.
+        popperInstance = window.Popper.createPopper(referenceElement, self.dropdownMenu[0], {
+          placement: placement,
+          modifiers: [
+            { name: 'preventOverflow', options: { boundary: 'clippingParents' } },
+            { name: 'offset', options: { offset: [0, 2] } }
+          ]
+        });
       } else {
-        css.left = 'auto';
-        scrollbarPadding = $position.scrollbarPadding(appendTo);
-
-        if (scrollbarPadding.heightOverflow && scrollbarPadding.scrollbarWidth) {
-          scrollbarWidth = scrollbarPadding.scrollbarWidth;
-        }
-
-        css.right = window.innerWidth - scrollbarWidth -
-          (pos.left + $element.prop('offsetWidth')) + 'px';
+        self.dropdownMenu.css('display', 'none');
       }
-
-      // Need to adjust our positioning to be relative to the appendTo container
-      // if it's not the body element
-      if (!appendToBody) {
-        var appendOffset = $position.offset(appendTo);
-
-        css.top = pos.top - appendOffset.top + 'px';
-
-        if (!rightalign) {
-          css.left = pos.left - appendOffset.left + 'px';
-        } else {
-          css.right = window.innerWidth -
-            (pos.left - appendOffset.left + $element.prop('offsetWidth')) + 'px';
-        }
-      }
-
-      self.dropdownMenu.css(css);
     }
 
     // find openContainer by uib-dropdown-menu directive
@@ -3712,6 +3724,13 @@ angular.module('ui.bootstrap.dropdown', ['ui.bootstrap.multiMap', 'ui.bootstrap.
       }
 
       element.addClass('dropdown-menu');
+
+      // Bootstrap 5's own dropdown-menu positioning CSS (offset, spacer
+      // margin, .dropdown-menu-end alignment) is gated behind the
+      // [data-bs-popper] attribute that real Popper.js sets. This directive
+      // positions the menu itself, but still needs the marker attribute
+      // present for that CSS to take effect.
+      element.attr('data-bs-popper', '');
 
       var tplUrl = attrs.templateUrl;
       if (tplUrl) {
@@ -3936,6 +3955,7 @@ angular.module('ui.bootstrap.modal', ['ui.bootstrap.multiMap', 'ui.bootstrap.sta
       link: function(scope, element, attrs) {
         element.addClass(attrs.windowTopClass || '');
         scope.size = attrs.size;
+        scope.scrollable = attrs.scrollable === 'true';
 
         scope.close = function(evt) {
           var modal = $modalStack.getTop();
@@ -4259,7 +4279,8 @@ angular.module('ui.bootstrap.modal', ['ui.bootstrap.multiMap', 'ui.bootstrap.sta
           openedClass: modal.openedClass,
           windowTopClass: modal.windowTopClass,
           animation: modal.animation,
-          appendTo: modal.appendTo
+          appendTo: modal.appendTo,
+          scrollable: modal.scrollable
         });
 
         openedClasses.put(modalBodyClass, modalInstance);
@@ -4318,6 +4339,7 @@ angular.module('ui.bootstrap.modal', ['ui.bootstrap.multiMap', 'ui.bootstrap.sta
           'aria-labelledby': modal.ariaLabelledBy,
           'aria-describedby': modal.ariaDescribedBy,
           'size': modal.size,
+          'scrollable': modal.scrollable,
           'index': topModalIndex,
           'animate': 'animate',
           'ng-style': '{\'z-index\': 1050 + $$topModalIndex*10, display: \'block\'}',
@@ -4499,7 +4521,8 @@ angular.module('ui.bootstrap.modal', ['ui.bootstrap.multiMap', 'ui.bootstrap.sta
       options: {
         animation: true,
         backdrop: true, //can also be false or 'static'
-        keyboard: true
+        keyboard: true,
+        scrollable: false
       },
       $get: ['$rootScope', '$q', '$document', '$templateRequest', '$controller', '$uibResolve', '$uibModalStack',
         function ($rootScope, $q, $document, $templateRequest, $controller, $uibResolve, $modalStack) {
@@ -4597,6 +4620,7 @@ angular.module('ui.bootstrap.modal', ['ui.bootstrap.multiMap', 'ui.bootstrap.sta
                   ariaLabelledBy: modalOptions.ariaLabelledBy,
                   ariaDescribedBy: modalOptions.ariaDescribedBy,
                   size: modalOptions.size,
+                  scrollable: modalOptions.scrollable,
                   openedClass: modalOptions.openedClass,
                   appendTo: modalOptions.appendTo
                 };
@@ -4970,6 +4994,36 @@ angular.module('ui.bootstrap.pagination', ['ui.bootstrap.paging', 'ui.bootstrap.
  * function, placement as a function, inside, support for more triggers than
  * just mouse enter/leave, html tooltips, and selector delegation.
  */
+
+// Bootstrap 5 renamed the left/right placement classes (bs-tooltip-left,
+// bs-popover-right, ...) to the RTL-aware bs-tooltip-start/bs-tooltip-end.
+// Internal placement keywords are still left/right, so translate just the
+// primary direction when building the CSS class name.
+function bs5PlacementClass(placement) {
+  if (placement === 'left' || placement.indexOf('left-') === 0) {
+    return placement.replace('left', 'start');
+  }
+  if (placement === 'right' || placement.indexOf('right-') === 0) {
+    return placement.replace('right', 'end');
+  }
+  return placement;
+}
+
+// Converts a $position.parsePlacement() result (e.g. ['top', 'left']) into
+// real Popper.js's own placement vocabulary (e.g. 'top-start'). Popper only
+// knows 'start'/'end' for the secondary axis: 'left'/'top' is always the
+// leading (start) edge and 'right'/'bottom' the trailing (end) edge,
+// regardless of the primary direction.
+function toPopperPlacement(placementParts) {
+  var primary = placementParts[0];
+  var secondary = placementParts[1];
+  if (!secondary || secondary === 'center') {
+    return primary;
+  }
+  var suffix = (secondary === 'left' || secondary === 'top') ? 'start' : 'end';
+  return primary + '-' + suffix;
+}
+
 angular.module('ui.bootstrap.tooltip', ['ui.bootstrap.position', 'ui.bootstrap.stackedMap'])
 
 /**
@@ -5107,11 +5161,11 @@ angular.module('ui.bootstrap.tooltip', ['ui.bootstrap.position', 'ui.bootstrap.s
           return function link(scope, element, attrs, tooltipCtrl) {
             var tooltip;
             var tooltipLinkedScope;
+            var popperInstance;
             var transitionTimeout;
             var showTimeout;
             var hideTimeout;
             var positionTimeout;
-            var adjustmentTimeout;
             var appendToBody = angular.isDefined(options.appendToBody) ? options.appendToBody : false;
             var triggers = getTriggers(undefined);
             var hasEnableExp = angular.isDefined(attrs[prefix + 'Enable']);
@@ -5126,47 +5180,67 @@ angular.module('ui.bootstrap.tooltip', ['ui.bootstrap.position', 'ui.bootstrap.s
               // check if tooltip exists and is not empty
               if (!tooltip || !tooltip.html()) { return; }
 
+              if (popperInstance) {
+                // Already positioned once (e.g. content changed size) --
+                // Popper re-measures from the live DOM, no manual
+                // recalculation needed.
+                popperInstance.update();
+                return;
+              }
+
               if (!positionTimeout) {
                 positionTimeout = $timeout(function() {
-                  var placementClasses = $position.parsePlacement(ttScope.placement);
-                  var placement = placementClasses[1] === 'center' ? placementClasses[0] : placementClasses[0] + '-' + placementClasses[1];
-				  
-                  // need to add classes prior to placement to allow correct tooltip width calculations
-                  if (!tooltip.hasClass(placementClasses[0])) {
-                    tooltip.removeClass(lastPlacement.split('-')[0]);
-                    tooltip.addClass(placementClasses[0]);
-                  }
+                  var placement = toPopperPlacement($position.parsePlacement(ttScope.placement));
+                  var isPopover = options.placementClassPrefix === 'bs-popover-';
+                  var arrowSelector = isPopover ? '.popover-arrow' : '.tooltip-arrow';
+                  var defaultOffset = isPopover ? [0, 8] : [0, 6];
 
-                  if (!tooltip.hasClass(options.placementClassPrefix + placement)) {
-                    tooltip.removeClass(options.placementClassPrefix + lastPlacement);
-                    tooltip.addClass(options.placementClassPrefix + placement);
-                  }
-                  
-                  // Take into account tooltup margins, since boostrap css draws tooltip arrow inside margins
-                  var ttPosition = $position.positionElements(element, tooltip, ttScope.placement, appendToBody, true);
-                  var initialHeight = angular.isDefined(tooltip.offsetHeight) ? tooltip.offsetHeight : tooltip.prop('offsetHeight');
-                  var elementPos = appendToBody ? $position.offset(element) : $position.position(element);
-                  tooltip.css({ top: ttPosition.top + 'px', left: ttPosition.left + 'px' });
+                  popperInstance = window.Popper.createPopper(element[0], tooltip[0], {
+                    placement: placement,
+                    modifiers: [
+                      { name: 'flip', options: { fallbackPlacements: ['top', 'right', 'bottom', 'left'] } },
+                      { name: 'offset', options: { offset: defaultOffset } },
+                      { name: 'preventOverflow', options: { boundary: 'clippingParents' } },
+                      { name: 'arrow', options: { element: arrowSelector } },
+                      {
+                        name: 'preSetPlacement',
+                        enabled: true,
+                        phase: 'beforeMain',
+                        fn: function(_ref) {
+                          // Pre-set the placement attribute so the arrow's
+                          // CSS dimensions (border widths differ per side)
+                          // are read correctly before Popper measures it --
+                          // same trick real Bootstrap 5 uses.
+                          tooltip.attr('data-popper-placement', _ref.state.placement);
+                        }
+                      },
+                      {
+                        name: 'syncPlacementClasses',
+                        enabled: true,
+                        phase: 'afterWrite',
+                        fn: function(_ref) {
+                          var resolvedPlacement = _ref.state.placement;
+                          var basePlacement = resolvedPlacement.split('-')[0];
 
-                  adjustmentTimeout = $timeout(function() {
-                    var currentHeight = angular.isDefined(tooltip.offsetHeight) ? tooltip.offsetHeight : tooltip.prop('offsetHeight');
-                    var adjustment = $position.adjustTop(placementClasses, elementPos, initialHeight, currentHeight);
-                    if (adjustment) {
-                      tooltip.css(adjustment);
+                          if (!tooltip.hasClass(basePlacement)) {
+                            tooltip.removeClass(lastPlacement.split('-')[0]);
+                            tooltip.addClass(basePlacement);
+                          }
+
+                          var bs5Class = options.placementClassPrefix + bs5PlacementClass(basePlacement);
+                          if (!tooltip.hasClass(bs5Class)) {
+                            tooltip.removeClass(options.placementClassPrefix + bs5PlacementClass(lastPlacement));
+                            tooltip.addClass(bs5Class);
+                          }
+
+                          lastPlacement = resolvedPlacement;
+                        }
+                      }
+                    ],
+                    onFirstUpdate: function() {
+                      tooltip.removeClass('uib-position-measure');
                     }
-                    adjustmentTimeout = null;
-                  }, 0, false);
-
-                  // first time through tt element will have the
-                  // uib-position-measure class or if the placement
-                  // has changed we need to position the arrow.
-                  if (tooltip.hasClass('uib-position-measure')) {
-                    $position.positionArrow(tooltip, ttPosition.placement);
-                    tooltip.removeClass('uib-position-measure');
-                  } else if (lastPlacement !== ttPosition.placement) {
-                    $position.positionArrow(tooltip, ttPosition.placement);
-                  }
-                  lastPlacement = ttPosition.placement;
+                  });
 
                   positionTimeout = null;
                 }, 0, false);
@@ -5317,13 +5391,15 @@ angular.module('ui.bootstrap.tooltip', ['ui.bootstrap.position', 'ui.bootstrap.s
               cancelHide();
               unregisterObservers();
 
+              if (popperInstance) {
+                popperInstance.destroy();
+                popperInstance = null;
+              }
+
               if (tooltip) {
                 tooltip.remove();
 
                 tooltip = null;
-                if (adjustmentTimeout) {
-                  $timeout.cancel(adjustmentTimeout);
-                }
               }
 
               openedTooltips.remove(ttScope);
@@ -7559,20 +7635,20 @@ angular.module("uib/template/datepicker/day.html", []).run(["$templateCache", fu
     "  <thead>\n" +
     "    <tr>\n" +
     "      <th>\n" +
-    "        <button type=\"button\" class=\"btn btn-secondary btn-sm float-left uib-left\" ng-click=\"move(-1)\" tabindex=\"-1\">\n" +
+    "        <button type=\"button\" class=\"btn btn-default btn-sm float-start uib-left\" ng-click=\"move(-1)\" tabindex=\"-1\">\n" +
     "          <i aria-hidden=\"true\" class=\"fa-svg-icon\">\n" +
     "            <svg width=\"1792\" height=\"1792\" viewBox=\"0 0 1792 1792\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M1427 301l-531 531 531 531q19 19 19 45t-19 45l-166 166q-19 19-45 19t-45-19l-742-742q-19-19-19-45t19-45l742-742q19-19 45-19t45 19l166 166q19 19 19 45t-19 45z\"/></svg>\n" +
     "          </i>\n" +
-    "          <span class=\"sr-only\">previous</span>\n" +
+    "          <span class=\"visually-hidden\">previous</span>\n" +
     "        </button>\n" +
     "      </th>\n" +
-    "      <th colspan=\"{{::5 + showWeeks}}\"><button id=\"{{::uniqueId}}-title\" role=\"heading\" aria-live=\"assertive\" aria-atomic=\"true\" type=\"button\" class=\"btn btn-secondary btn-sm uib-title\" ng-click=\"toggleMode()\" ng-disabled=\"datepickerMode === maxMode\" tabindex=\"-1\"><strong>{{title}}</strong></button></th>\n" +
+    "      <th colspan=\"{{::5 + showWeeks}}\"><button id=\"{{::uniqueId}}-title\" role=\"heading\" aria-live=\"assertive\" aria-atomic=\"true\" type=\"button\" class=\"btn btn-default btn-sm uib-title\" ng-click=\"toggleMode()\" ng-disabled=\"datepickerMode === maxMode\" tabindex=\"-1\"><strong>{{title}}</strong></button></th>\n" +
     "      <th>\n" +
-    "        <button type=\"button\" class=\"btn btn-secondary btn-sm float-right uib-right\" ng-click=\"move(1)\" tabindex=\"-1\">\n" +
+    "        <button type=\"button\" class=\"btn btn-default btn-sm float-end uib-right\" ng-click=\"move(1)\" tabindex=\"-1\">\n" +
     "          <i aria-hidden=\"true\" class=\"fa-svg-icon\">\n" +
     "            <svg width=\"1792\" height=\"1792\" viewBox=\"0 0 1792 1792\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M1363 877l-742 742q-19 19-45 19t-45-19l-166-166q-19-19-19-45t19-45l531-531-531-531q-19-19-19-45t19-45l166-166q19-19 45-19t45 19l742 742q19 19 19 45t-19 45z\"/></svg>\n" +
     "          </i>\n" +
-    "          <span class=\"sr-only\">next</span>\n" +
+    "          <span class=\"visually-hidden\">next</span>\n" +
     "        </button>\n" +
     "      </th>\n" +
     "    </tr>\n" +
@@ -7587,7 +7663,7 @@ angular.module("uib/template/datepicker/day.html", []).run(["$templateCache", fu
     "      <td ng-repeat=\"dt in row\" class=\"uib-day text-center\" role=\"gridcell\"\n" +
     "        id=\"{{::dt.uid}}\"\n" +
     "        ng-class=\"::dt.customClass\">\n" +
-    "        <button type=\"button\" class=\"btn btn-secondary btn-sm\"\n" +
+    "        <button type=\"button\" class=\"btn btn-default btn-sm\"\n" +
     "          uib-is-class=\"\n" +
     "            'btn-info' for selectedDt,\n" +
     "            'active' for activeDt\n" +
@@ -7608,20 +7684,20 @@ angular.module("uib/template/datepicker/month.html", []).run(["$templateCache", 
     "  <thead>\n" +
     "    <tr>\n" +
     "      <th>\n" +
-    "        <button type=\"button\" class=\"btn btn-secondary btn-sm float-left uib-left\" ng-click=\"move(-1)\" tabindex=\"-1\">\n" +
+    "        <button type=\"button\" class=\"btn btn-default btn-sm float-start uib-left\" ng-click=\"move(-1)\" tabindex=\"-1\">\n" +
     "          <i aria-hidden=\"true\" class=\"fa-svg-icon\">\n" +
     "            <svg width=\"1792\" height=\"1792\" viewBox=\"0 0 1792 1792\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M1427 301l-531 531 531 531q19 19 19 45t-19 45l-166 166q-19 19-45 19t-45-19l-742-742q-19-19-19-45t19-45l742-742q19-19 45-19t45 19l166 166q19 19 19 45t-19 45z\"/></svg>\n" +
     "          </i>\n" +
-    "          <span class=\"sr-only\">previous</span>\n" +
+    "          <span class=\"visually-hidden\">previous</span>\n" +
     "        </button>\n" +
     "      </th>\n" +
-    "      <th colspan=\"{{::yearHeaderColspan}}\"><button id=\"{{::uniqueId}}-title\" role=\"heading\" aria-live=\"assertive\" aria-atomic=\"true\" type=\"button\" class=\"btn btn-secondary btn-sm uib-title\" ng-click=\"toggleMode()\" ng-disabled=\"datepickerMode === maxMode\" tabindex=\"-1\"><strong>{{title}}</strong></button></th>\n" +
+    "      <th colspan=\"{{::yearHeaderColspan}}\"><button id=\"{{::uniqueId}}-title\" role=\"heading\" aria-live=\"assertive\" aria-atomic=\"true\" type=\"button\" class=\"btn btn-default btn-sm uib-title\" ng-click=\"toggleMode()\" ng-disabled=\"datepickerMode === maxMode\" tabindex=\"-1\"><strong>{{title}}</strong></button></th>\n" +
     "      <th>\n" +
-    "        <button type=\"button\" class=\"btn btn-secondary btn-sm float-right uib-right\" ng-click=\"move(1)\" tabindex=\"-1\">\n" +
+    "        <button type=\"button\" class=\"btn btn-default btn-sm float-end uib-right\" ng-click=\"move(1)\" tabindex=\"-1\">\n" +
     "          <i aria-hidden=\"true\" class=\"fa-svg-icon\">\n" +
     "            <svg width=\"1792\" height=\"1792\" viewBox=\"0 0 1792 1792\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M1363 877l-742 742q-19 19-45 19t-45-19l-166-166q-19-19-19-45t19-45l531-531-531-531q-19-19-19-45t19-45l166-166q19-19 45-19t45 19l742 742q19 19 19 45t-19 45z\"/></svg>\n" +
     "          </i>\n" +
-    "          <span class=\"sr-only\">next</span>\n" +
+    "          <span class=\"visually-hidden\">next</span>\n" +
     "        </button>\n" +
     "      </th>\n" +
     "    </tr>\n" +
@@ -7631,7 +7707,7 @@ angular.module("uib/template/datepicker/month.html", []).run(["$templateCache", 
     "      <td ng-repeat=\"dt in row\" class=\"uib-month text-center\" role=\"gridcell\"\n" +
     "        id=\"{{::dt.uid}}\"\n" +
     "        ng-class=\"::dt.customClass\">\n" +
-    "        <button type=\"button\" class=\"btn btn-secondary\"\n" +
+    "        <button type=\"button\" class=\"btn btn-default\"\n" +
     "          uib-is-class=\"\n" +
     "            'btn-info' for selectedDt,\n" +
     "            'active' for activeDt\n" +
@@ -7652,26 +7728,26 @@ angular.module("uib/template/datepicker/year.html", []).run(["$templateCache", f
     "  <thead>\n" +
     "  <tr>\n" +
     "    <th>\n" +
-    "      <button type=\"button\" class=\"btn btn-secondary btn-sm float-left uib-left\" ng-click=\"move(-1)\" tabindex=\"-1\">\n" +
+    "      <button type=\"button\" class=\"btn btn-default btn-sm float-start uib-left\" ng-click=\"move(-1)\" tabindex=\"-1\">\n" +
     "        <i aria-hidden=\"true\" class=\"fa-svg-icon\">\n" +
     "          <svg width=\"1792\" height=\"1792\" viewBox=\"0 0 1792 1792\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M1427 301l-531 531 531 531q19 19 19 45t-19 45l-166 166q-19 19-45 19t-45-19l-742-742q-19-19-19-45t19-45l742-742q19-19 45-19t45 19l166 166q19 19 19 45t-19 45z\"/></svg>\n" +
     "        </i>\n" +
-    "        <span class=\"sr-only\">previous</span>\n" +
+    "        <span class=\"visually-hidden\">previous</span>\n" +
     "      </button>\n" +
     "    </th>\n" +
     "    <th colspan=\"{{::columns - 2}}\">\n" +
     "      <button id=\"{{::uniqueId}}-title\" role=\"heading\" aria-live=\"assertive\" aria-atomic=\"true\" type=\"button\"\n" +
-    "              class=\"btn btn-secondary btn-sm uib-title\" ng-click=\"toggleMode()\"\n" +
+    "              class=\"btn btn-default btn-sm uib-title\" ng-click=\"toggleMode()\"\n" +
     "              ng-disabled=\"datepickerMode === maxMode\" tabindex=\"-1\">\n" +
     "        <strong>{{title}}</strong>\n" +
     "      </button>\n" +
     "    </th>\n" +
     "    <th>\n" +
-    "      <button type=\"button\" class=\"btn btn-secondary btn-sm float-right uib-right\" ng-click=\"move(1)\" tabindex=\"-1\">\n" +
+    "      <button type=\"button\" class=\"btn btn-default btn-sm float-end uib-right\" ng-click=\"move(1)\" tabindex=\"-1\">\n" +
     "        <i aria-hidden=\"true\" class=\"fa-svg-icon\">\n" +
     "          <svg width=\"1792\" height=\"1792\" viewBox=\"0 0 1792 1792\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M1363 877l-742 742q-19 19-45 19t-45-19l-166-166q-19-19-19-45t19-45l531-531-531-531q-19-19-19-45t19-45l166-166q19-19 45-19t45 19l742 742q19 19 19 45t-19 45z\"/></svg>\n" +
     "        </i>\n" +
-    "        <span class=\"sr-only\">next</span>\n" +
+    "        <span class=\"visually-hidden\">next</span>\n" +
     "      </button>\n" +
     "    </th>\n" +
     "  </tr>\n" +
@@ -7681,7 +7757,7 @@ angular.module("uib/template/datepicker/year.html", []).run(["$templateCache", f
     "    <td ng-repeat=\"dt in row\" class=\"uib-year text-center\" role=\"gridcell\"\n" +
     "        id=\"{{::dt.uid}}\"\n" +
     "        ng-class=\"::dt.customClass\">\n" +
-    "      <button type=\"button\" class=\"btn btn-secondary\"\n" +
+    "      <button type=\"button\" class=\"btn btn-default\"\n" +
     "              uib-is-class=\"\n" +
     "            'btn-info' for selectedDt,\n" +
     "            'active' for activeDt\n" +
@@ -7701,11 +7777,11 @@ angular.module("uib/template/datepickerPopup/popup.html", []).run(["$templateCac
     "<ul role=\"presentation\" class=\"uib-datepicker-popup dropdown-menu uib-position-measure\" dropdown-nested ng-if=\"isOpen\" ng-keydown=\"keydown($event)\" ng-click=\"$event.stopPropagation()\">\n" +
     "  <li ng-transclude></li>\n" +
     "  <li ng-if=\"showButtonBar\" class=\"uib-button-bar\">\n" +
-    "    <span class=\"btn-group float-left\">\n" +
+    "    <span class=\"btn-group float-start\">\n" +
     "      <button type=\"button\" class=\"btn btn-sm btn-info uib-datepicker-current\" ng-click=\"select('today', $event)\" ng-disabled=\"isDisabled('today')\">{{ getText('current') }}</button>\n" +
     "      <button type=\"button\" class=\"btn btn-sm btn-danger uib-clear\" ng-click=\"select(null, $event)\">{{ getText('clear') }}</button>\n" +
     "    </span>\n" +
-    "    <button type=\"button\" class=\"btn btn-sm btn-success float-right uib-close\" ng-click=\"close($event)\">{{ getText('close') }}</button>\n" +
+    "    <button type=\"button\" class=\"btn btn-sm btn-success float-end uib-close\" ng-click=\"close($event)\">{{ getText('close') }}</button>\n" +
     "  </li>\n" +
     "</ul>\n" +
     "");
@@ -7713,7 +7789,7 @@ angular.module("uib/template/datepickerPopup/popup.html", []).run(["$templateCac
 
 angular.module("uib/template/modal/window.html", []).run(["$templateCache", function ($templateCache) {
   $templateCache.put("uib/template/modal/window.html",
-    "<div class=\"modal-dialog {{size ? 'modal-' + size : ''}}\"><div class=\"modal-content\" uib-modal-transclude></div></div>\n" +
+    "<div class=\"modal-dialog {{size ? 'modal-' + size : ''}} {{scrollable ? 'modal-dialog-scrollable': ''}}\"><div class=\"modal-content\" uib-modal-transclude></div></div>\n" +
     "");
 }]);
 
@@ -7736,21 +7812,21 @@ angular.module("uib/template/pagination/pagination.html", []).run(["$templateCac
 
 angular.module("uib/template/tooltip/tooltip-html-popup.html", []).run(["$templateCache", function ($templateCache) {
   $templateCache.put("uib/template/tooltip/tooltip-html-popup.html",
-    "<div class=\"arrow\"></div>\n" +
+    "<div class=\"tooltip-arrow\"></div>\n" +
     "<div class=\"tooltip-inner\" ng-bind-html=\"contentExp()\"></div>\n" +
     "");
 }]);
 
 angular.module("uib/template/tooltip/tooltip-popup.html", []).run(["$templateCache", function ($templateCache) {
   $templateCache.put("uib/template/tooltip/tooltip-popup.html",
-    "<div class=\"arrow\"></div>\n" +
+    "<div class=\"tooltip-arrow\"></div>\n" +
     "<div class=\"tooltip-inner\" ng-bind=\"content\"></div>\n" +
     "");
 }]);
 
 angular.module("uib/template/tooltip/tooltip-template-popup.html", []).run(["$templateCache", function ($templateCache) {
   $templateCache.put("uib/template/tooltip/tooltip-template-popup.html",
-    "<div class=\"arrow\"></div>\n" +
+    "<div class=\"tooltip-arrow\"></div>\n" +
     "<div class=\"tooltip-inner\"\n" +
     "  uib-tooltip-template-transclude=\"contentExp()\"\n" +
     "  tooltip-template-transclude-scope=\"originScope()\"></div>\n" +
@@ -7759,7 +7835,7 @@ angular.module("uib/template/tooltip/tooltip-template-popup.html", []).run(["$te
 
 angular.module("uib/template/popover/popover-html.html", []).run(["$templateCache", function ($templateCache) {
   $templateCache.put("uib/template/popover/popover-html.html",
-    "<div class=\"arrow\"></div>\n" +
+    "<div class=\"popover-arrow\"></div>\n" +
     "<h3 class=\"popover-header\" ng-bind=\"uibTitle\" ng-if=\"uibTitle\"></h3>\n" +
     "<div class=\"popover-body\" ng-bind-html=\"contentExp()\"></div>\n" +
     "");
@@ -7767,7 +7843,7 @@ angular.module("uib/template/popover/popover-html.html", []).run(["$templateCach
 
 angular.module("uib/template/popover/popover-template.html", []).run(["$templateCache", function ($templateCache) {
   $templateCache.put("uib/template/popover/popover-template.html",
-    "<div class=\"arrow\"></div>\n" +
+    "<div class=\"popover-arrow\"></div>\n" +
     "\n" +
     "<h3 class=\"popover-header\" ng-bind=\"uibTitle\" ng-if=\"uibTitle\"></h3>\n" +
     "<div class=\"popover-body\"\n" +
@@ -7778,7 +7854,7 @@ angular.module("uib/template/popover/popover-template.html", []).run(["$template
 
 angular.module("uib/template/popover/popover.html", []).run(["$templateCache", function ($templateCache) {
   $templateCache.put("uib/template/popover/popover.html",
-    "<div class=\"arrow\"></div>\n" +
+    "<div class=\"popover-arrow\"></div>\n" +
     "<h3 class=\"popover-header\" ng-bind=\"uibTitle\" ng-if=\"uibTitle\"></h3>\n" +
     "<div class=\"popover-body\" ng-bind=\"content\"></div>\n" +
     "");
@@ -7826,7 +7902,7 @@ angular.module("uib/template/tabs/tab.html", []).run(["$templateCache", function
 angular.module("uib/template/tabs/tabset.html", []).run(["$templateCache", function ($templateCache) {
   $templateCache.put("uib/template/tabs/tabset.html",
     "<div>\n" +
-    "  <ul class=\"nav nav-{{tabset.type || 'tabs'}}\" ng-class=\"{'nav-stacked': vertical, 'nav-justified': justified}\" ng-transclude></ul>\n" +
+    "  <ul class=\"nav nav-{{tabset.type || 'tabs'}}\" ng-class=\"{'nav-stacked flex-column': vertical, 'nav-justified': justified}\" ng-transclude></ul>\n" +
     "  <div class=\"tab-content\">\n" +
     "    <div class=\"tab-pane\"\n" +
     "         ng-repeat=\"tab in tabset.tabs\"\n" +

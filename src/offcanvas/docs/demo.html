@@ -1,0 +1,76 @@
+<div ng-controller="OffcanvasCtrl">
+  <p>
+    <button type="button" class="btn btn-primary" uib-offcanvas-toggle="#offcanvas-default">
+      Toggle default offcanvas
+    </button>
+  </p>
+
+  <div id="offcanvas-default" class="offcanvas-start" uib-offcanvas is-open="isOpen.default"
+       on-show="onShow('default')" on-shown="onShown('default')"
+       on-hide="onHide('default')" on-hidden="onHidden('default')">
+    <div class="offcanvas-header">
+      <h5 class="offcanvas-title">Default offcanvas</h5>
+      <button type="button" class="btn-close" aria-label="Close" uib-offcanvas-dismiss></button>
+    </div>
+    <div class="offcanvas-body">
+      <p>Backdrop click and Escape both close this panel, and body scrolling is locked while it's open.</p>
+      <a href="#" class="link-primary">A focusable link</a>
+    </div>
+  </div>
+
+  <hr>
+
+  <p>
+    <button type="button" class="btn btn-primary" uib-offcanvas-toggle="#offcanvas-static">
+      Toggle static-backdrop offcanvas
+    </button>
+  </p>
+
+  <div id="offcanvas-static" class="offcanvas-start" uib-offcanvas is-open="isOpen.static" backdrop="'static'"
+       on-hide-prevented="onHidePrevented('static')">
+    <div class="offcanvas-header">
+      <h5 class="offcanvas-title">Static-backdrop offcanvas</h5>
+      <button type="button" class="btn-close" aria-label="Close" uib-offcanvas-dismiss></button>
+    </div>
+    <div class="offcanvas-body">
+      <p>Clicking the backdrop will not close this panel -- only the close button or Escape will.</p>
+    </div>
+  </div>
+
+  <hr>
+
+  <p>
+    <button type="button" class="btn btn-primary" uib-offcanvas-toggle="#offcanvas-scroll">
+      Toggle offcanvas with body scrolling enabled
+    </button>
+  </p>
+
+  <div id="offcanvas-scroll" class="offcanvas-start" uib-offcanvas is-open="isOpen.scroll" scroll="true">
+    <div class="offcanvas-header">
+      <h5 class="offcanvas-title">Scrollable-body offcanvas</h5>
+      <button type="button" class="btn-close" aria-label="Close" uib-offcanvas-dismiss></button>
+    </div>
+    <div class="offcanvas-body">
+      <p>The rest of the page keeps scrolling normally while this panel is open.</p>
+    </div>
+  </div>
+
+  <hr>
+
+  <p>
+    <button type="button" class="btn btn-primary" uib-offcanvas-toggle="#offcanvas-no-keyboard">
+      Toggle offcanvas with Escape disabled
+    </button>
+  </p>
+
+  <div id="offcanvas-no-keyboard" class="offcanvas-start" uib-offcanvas is-open="isOpen.noKeyboard" keyboard="false"
+       on-hide-prevented="onHidePrevented('no-keyboard')">
+    <div class="offcanvas-header">
+      <h5 class="offcanvas-title">Keyboard-disabled offcanvas</h5>
+      <button type="button" class="btn-close" aria-label="Close" uib-offcanvas-dismiss></button>
+    </div>
+    <div class="offcanvas-body">
+      <p>Pressing Escape will not close this panel -- only the close button will.</p>
+    </div>
+  </div>
+</div>
