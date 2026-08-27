@@ -379,7 +379,23 @@ module.exports = function(grunt) {
         grunt.config('concat.dist_tpls.src', grunt.config('concat.dist_tpls.src')
             .concat(srcFiles).concat(tpljsFiles));
 
-        grunt.task.run(['concat', 'uglify', 'makeModuleMappingFile', 'makeRawFilesJs', 'makeVersionsMappingFile']);
+        grunt.task.run(['concat', 'uglify', 'makeModuleMappingFile', 'makeRawFilesJs', 'makeVersionsMappingFile', 'aliasDistTpls']);
+    });
+
+    // The package's own root index.js does require('./dist/ui-bootstrap-tpls')
+    // -- i.e. this unversioned file, not the versioned one above, is what
+    // consumers actually get via require('ui-bootstrap4'). Previously the
+    // only thing that (re)created it was shell:publish, as part of a full
+    // rm -rf dist/* + npm publish release -- far too heavy just to pick up
+    // a local build. Keep it in sync on every build instead.
+    grunt.registerTask('aliasDistTpls', 'Copy the versioned tpls bundle to the unversioned alias required by index.js', function() {
+        const dist = grunt.config('dist');
+        const filename = grunt.config('filename');
+        const version = grunt.config('pkg').version;
+        const src = `${dist}/${filename}-tpls-${version}.js`;
+        const dest = `${dist}/${filename}-tpls.js`;
+        grunt.file.copy(src, dest);
+        grunt.log.writeln('File ' + dest.cyan + ' created.');
     });
 
     grunt.registerTask('test', 'Run tests on singleRun karma server', function() {
