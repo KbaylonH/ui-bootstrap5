@@ -4786,8 +4786,6 @@ angular.module('ui.bootstrap.offcanvas', ['ui.bootstrap.position'])
       'button:not([disabled]):not([tabindex=\'-1\']),select:not([disabled]):not([tabindex=\'-1\']), textarea:not([disabled]):not([tabindex=\'-1\']), ' +
       'iframe, object, embed, *[tabindex]:not([tabindex=\'-1\']), *[contenteditable=true]';
 
-    $element.addClass('offcanvas');
-
     this.init = function() {
       if ($attrs.isOpen) {
         getIsOpen = $parse($attrs.isOpen);
